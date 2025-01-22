@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import bcrypt
 import psycopg2
+import jwt
+import datetime
 
 app = Flask(__name__)
 CORS(app)  # Habilita CORS para permitir el acceso desde el frontend
@@ -62,6 +64,11 @@ def login():
         stored_hash = bytes(user[2])  # 🔹 Convertir `BYTEA` de PostgreSQL a `bytes`
         
         if bcrypt.checkpw(password.encode('utf-8'), stored_hash):
+            token = jwt.encode(
+                {"user_id":user[0], "exp":datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1) },
+                "SECRET_KEY",
+                algorithm="HS256"
+            )
             return jsonify({"message": "Inicio de sesión correcto", "user_id": user[0], "nombre": user[1]}), 200
     
     return jsonify({"message": "Credenciales incorrectas"}), 401
