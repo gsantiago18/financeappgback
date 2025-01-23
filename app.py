@@ -6,7 +6,7 @@ import jwt
 import datetime
 
 app = Flask(__name__)
-CORS(app)  # Habilita CORS para permitir el acceso desde el frontend
+CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
 # Configuración de PostgreSQL
 DB_CONFIG = {
@@ -65,13 +65,74 @@ def login():
         
         if bcrypt.checkpw(password.encode('utf-8'), stored_hash):
             token = jwt.encode(
-                {"user_id":user[0], "exp":datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1) },
+                {"user_id":user[0], 
+                 "exp":datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1) 
+                 },
                 "SECRET_KEY",
                 algorithm="HS256"
             )
             return jsonify({"message": "Inicio de sesión correcto", "user_id": user[0], "nombre": user[1]}), 200
     
     return jsonify({"message": "Credenciales incorrectas"}), 401
+
+@app.route('/api/categoria' , methods=['GET'])
+def categorias():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT id_categoria, cat_nombre FROM categoria")
+    categorias = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    categorias= [{"id":cat[0], "nombre":cat[1]} for cat in categorias]
+    return jsonify(categorias)
+
+@app.route('/api/subcategorias/<int:id_categoria>', methods=['GET'])
+def subcategorias(id_categoria):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT id_subcategoria, nombre_subct FROM subcategoria WHERE id_categoria = %s", (id_categoria,))
+    subcategorias = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    subcategorias_json = [{"id":sub[0], "nombre":sub[1]} for sub in subcategorias]
+    return jsonify(subcategorias_json)
+
+
+@app.route('/api/nuevo_gasto/<int:id_categoria>/<int:usuario_id>', defaults={'id_subcategoria': None}, methods=['POST'])
+@app.route('/api/nuevo_gasto/<int:id_categoria>/<int:usuario_id>/<int:id_subcategoria>', methods=['POST'])
+def nuego_gasto(id_categoria,usuario_id,id_subcategoria):
+    data = request.json
+    monto = data.get('monto')
+    fecha = data.get('fecha')
+    observacion = data.get('observacion')
+
+    if not monto or not fecha:
+        return jsonify({"message": "Todos los campos son obligatorios"}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        if id_subcategoria is not None:
+            cur.execute("INSERT INTO registro ( monto, fecha, id_categoria,usuario_id, observacion,id_subcategoria) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (monto, fecha, id_categoria,usuario_id, observacion,id_subcategoria))
+        else:
+            cur.execute("""
+                INSERT INTO registro (monto, fecha, id_categoria, usuario_id, observacion) 
+                VALUES (%s, %s, %s, %s, %s)
+            """, (monto, fecha, id_categoria, usuario_id, observacion))   
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({"message": "Gasto registrado correctamente"}), 201
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"message": "Error al registrar el gasto"}), 500
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
