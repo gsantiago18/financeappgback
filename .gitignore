@@ -1,0 +1,15 @@
+# Evitar archivos sensibles
+.env
+
+# Archivos de dependencias de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Archivos del entorno virtual
+venv/
+.env/
+.venv/
+
+# Archivos de logs
+*.log

@@ -4,18 +4,25 @@ import bcrypt
 import psycopg2
 import jwt
 import datetime
+import os
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde .env
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
-# Configuración de PostgreSQL
+# Configuración de PostgreSQL desde .env
 DB_CONFIG = {
-    "dbname": "railway",
-    "user": "postgres",
-    "password": "KdilpqNrercaUrOHtZuqDirtLjibGBvY",
-    "host": "viaduct.proxy.rlwy.net",
-    "port": 40583
+    "dbname": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "host": os.getenv("DB_HOST"),
+    "port": os.getenv("DB_PORT")
 }
+
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 def get_db_connection():
     return psycopg2.connect(**DB_CONFIG)
