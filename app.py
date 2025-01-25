@@ -6,6 +6,7 @@ import jwt
 import datetime
 import os
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 
 # Cargar variables de entorno desde .env
 load_dotenv()
@@ -13,14 +14,22 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
-# Configuración de PostgreSQL desde .env
-DB_CONFIG = {
-    "dbname": os.getenv("DB_NAME"),
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-    "host": os.getenv("DB_HOST"),
-    "port": os.getenv("DB_PORT")
-}
+# Obtener la URL de la base de datos desde las variables de entorno
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+def get_db_connection():
+    if DATABASE_URL:
+        result = urlparse(DATABASE_URL)
+        conn = psycopg2.connect(
+            dbname=result.path[1:],  # Elimina la barra inicial en el nombre de la DB
+            user=result.username,
+            password=result.password,
+            host=result.hostname,
+            port=result.port
+        )
+        return conn
+    else:
+        raise Exception("DATABASE_URL no está configurada en Railway")
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 
