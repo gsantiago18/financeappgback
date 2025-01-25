@@ -87,6 +87,56 @@ def categorias():
     categorias= [{"id":cat[0], "nombre":cat[1]} for cat in categorias]
     return jsonify(categorias)
 
+@app.route('/api/registro/<int:usuario_id>', methods=['GET'])
+def registros(usuario_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    query = """
+        SELECT 
+            registro.monto,
+            registro.fecha,
+            c.cat_nombre,
+            COALESCE(s.nombre_subct, '') AS nombre_subct,
+            registro.observacion
+        FROM registro
+        INNER JOIN categoria c ON registro.id_categoria = c.id_categoria
+        LEFT JOIN subcategoria s ON registro.id_subcategoria = s.id_subcategoria
+        WHERE usuario_id = %s
+    """
+    params = [usuario_id,]
+
+    from_date = request.args.get('from')
+    to_date=  request.args.get('to')
+    category= request.args.get('category')
+    subcategory= request.args.get('subcategory')
+
+    if from_date and to_date:
+        query += " AND registro.fecha BETWEEN %s AND %s"
+        params.extend([from_date, to_date])
+
+    if category:
+        query +=  " AND registro.id_categoria = %s"
+        params.append(category)
+
+    if subcategory:
+        query += " AND registro.id_subcategoria = %s"  
+        params.append(subcategory)  
+            
+    cur.execute(query, params)
+    registros = cur.fetchall()
+    result=[]
+    for reg in registros:
+        result.append({
+            "monto": reg[0],
+            "fecha": reg[1].strftime('%Y-%m-%d'),
+            "categoria": reg[2],
+            "subcategoria": reg[3],
+            "observacion": reg[4]
+        })
+    cur.close()
+    conn.close()
+    return jsonify(result)    
+
 @app.route('/api/subcategorias/<int:id_categoria>', methods=['GET'])
 def subcategorias(id_categoria):
     conn = get_db_connection()
