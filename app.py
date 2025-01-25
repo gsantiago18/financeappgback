@@ -17,6 +17,9 @@ CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 # Obtener la URL de la base de datos desde las variables de entorno
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+if not DATABASE_URL:
+    raise ValueError("❌ ERROR: La variable DATABASE_URL no está definida en Railway.")
+
 def get_db_connection():
     if DATABASE_URL:
         result = urlparse(DATABASE_URL)
@@ -33,8 +36,7 @@ def get_db_connection():
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG)
+
 
 
 
