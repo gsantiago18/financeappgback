@@ -200,6 +200,37 @@ def nuego_gasto(id_categoria,usuario_id,id_subcategoria):
         conn.rollback()
         return jsonify({"message": "Error al registrar el gasto"}), 500
 
+@app.route('/api/nuevadeuda/<int:usuario_id>', methods=['POST'])
+def nueva_deuda(usuario_id):
+    data= request.json
+    nombre= data.get('nombre')
+    monto = data.get('monto')
+
+    try:
+
+        if not nombre or not monto:
+            return jsonify({"message": "Todos los campos son obligatorios"}), 400
+
+        else:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("INSERT INTO deuda (nombre_deuda,monto, usuario_id) VALUES (%s, %s, %s)",
+                        (nombre, monto, usuario_id))
+            conn.commit()
+            cur.close()
+            conn.close()
+
+            return jsonify({"message": "Deuda registrada correctamente"}), 201            
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"message": f"Error al registrar la deuda: {str(e)}"}), 500
+
+
+
+    
+
+
 
 
 if __name__ == '__main__':
